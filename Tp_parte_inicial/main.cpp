@@ -390,7 +390,7 @@ void monitorarEventosEscritaMES() {
         }
 
         if (!bloqueado) {
-            adicionarMensagemAoBuffer();
+            adicionarMensagemAoBufferMES();
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
     }
