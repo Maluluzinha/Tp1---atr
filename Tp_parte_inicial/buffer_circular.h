@@ -93,6 +93,6 @@ public:
 };
 
 extern BufferCircular<Mensagem, MAX_MESSAGES>* lista_1;
-extern BufferCircular<MensagemDeStatus, 100>* lista_2;
+extern BufferCircular<MensagemDeStatus, MAX_MESSAGES>* lista_2;
 
 #endif

@@ -41,7 +41,7 @@ BufferCircular<Mensagem, MAX_MESSAGES>* lista_1;
 BufferCircular<MensagemDeStatus, 100>* lista_22;
 
 
-const wchar_t* mutexName = L"Global\\MeuMutexCompartilhado"; 
+const wchar_t* mutexName = L"Global\\MeuMutexCompartilhado";
 const wchar_t* SEMAPHORE_NAME = L"Global\\MeuSemaforo";
 
 HANDLE hMutex;
@@ -49,6 +49,7 @@ HANDLE hSemaphore;
 HANDLE hMutexLista1;
 HANDLE hMutexLista2;
 BufferCircular<MensagemDeStatus, 1000> statusBuffer;
+BufferCircular<MensagemDeSetup, 1000> setupBuffer;
 
 HANDLE hThreadMES;
 DWORD WINAPI MESFunc(LPVOID);	// declaração da função do MES
@@ -361,15 +362,14 @@ void adicionarMensagemAoBufferMES() {
     GetLocalTime(&mensagem.timestamp);
 
     WaitForSingleObject(hMutex, INFINITE);
-    if (!statusBuffer.estaCheia()) {
-        statusBuffer.adicionarMensagem(mensagem);
+    if (!setupBuffer.estaCheia()) {
+        setupBuffer.adicionarMensagem(mensagem);
         std::cout << "Mensagem adicionada ao buffer: NSEQ=" << 0000 << std::endl;
     }
     ReleaseMutex(hMutex);
 
     ReleaseSemaphore(semEscritoras, 1, NULL);
 }
-
 
 void monitorarEventosEscritaMES() {
     bool bloqueado = false;
@@ -408,8 +408,9 @@ void monitorarEventosLeituraMES() {
         }
 
         MensagemDeSetup mensagem_mes;
+
         WaitForSingleObject(hMutex, INFINITE);
-        if (statusBuffer.recuperarMensagem(mensagem_mes)) {
+        if (setupBuffer.recuperarMensagem(mensagem_mes)) {
 
             std::cout << "MES: " << mensagem_mes.nseq << " | "
                 << "Produção Acumulada: " << mensagem_mes.sp_sep << " | "
@@ -428,44 +429,48 @@ void monitorarEventosLeituraMES() {
 }
 
 int main() {
-        
-         DWORD dwThreadId;
-        //Mutex compartilhado
-        hMutex = CreateMutex(NULL, FALSE, mutexName);
-        if (hMutex == NULL) {
-            std::cerr << "Erro ao criar o mutex. Código: " << GetLastError() << std::endl;
-            exit(EXIT_FAILURE);
-        }
 
-        hSemaphore = CreateSemaphore(NULL,0,1,SEMAPHORE_NAME);
-        if (hSemaphore == NULL) {
-            std::cerr << "Erro ao criar o semáforo. Código: " << GetLastError() << std::endl;
-            return 1;
-        }
+    DWORD dwThreadId;
+    //Mutex compartilhado
+    hMutex = CreateMutex(NULL, FALSE, mutexName);
+    if (hMutex == NULL) {
+        std::cerr << "Erro ao criar o mutex. Código: " << GetLastError() << std::endl;
+        exit(EXIT_FAILURE);
+    }
 
-        criarEventos();
+    hSemaphore = CreateSemaphore(NULL, 0, 1, SEMAPHORE_NAME);
+    if (hSemaphore == NULL) {
+        std::cerr << "Erro ao criar o semáforo. Código: " << GetLastError() << std::endl;
+        return 1;
+    }
 
-        iniciarProcesso(L"..\\x64\\Debug\\Tarefa_Leitura_Teclado.exe");
-        iniciarProcesso(L"..\\x64\\Debug\\Tarefa_Leitura_CLP.exe");
-        iniciarProcesso(L"..\\x64\\Debug\\Tarefa_de_Retirada_de_Mensagem.exe");
-        iniciarProcesso(L"..\\x64\\Debug\\Tarefa_Exibicao_de_Setups_de_Producao.exe");
-        iniciarProcesso(L"..\\x64\\Debug\\Tarefa_Exibicao_Dados_Processo.exe");
+    criarEventos();
 
-        /*------------- CLP --------------*/
-        criarMutex();
-        criarSemaforos();
+    iniciarProcesso(L"..\\x64\\Debug\\Tarefa_Leitura_Teclado.exe");
+    iniciarProcesso(L"..\\x64\\Debug\\Tarefa_Leitura_CLP.exe");
+    iniciarProcesso(L"..\\x64\\Debug\\Tarefa_de_Retirada_de_Mensagem.exe");
+    iniciarProcesso(L"..\\x64\\Debug\\Tarefa_Exibicao_de_Setups_de_Producao.exe");
+    iniciarProcesso(L"..\\x64\\Debug\\Tarefa_Exibicao_Dados_Processo.exe");
 
-        std::thread threadEscritaCLP(monitorarEventosEscritaCLP);
-        std::thread threadLeituraCLP(monitorarEventosLeituraCLP);
+    /*------------- CLP --------------*/
+    criarMutex();
+    criarSemaforos();
 
-        threadEscritaCLP.join();
-        threadLeituraCLP.join();
+    std::thread threadEscritaCLP(monitorarEventosEscritaCLP);
+    std::thread threadLeituraCLP(monitorarEventosLeituraCLP);
+    std::thread threadEscritaMES(monitorarEventosEscritaMES);
+    std::thread threadLeituraMES(monitorarEventosLeituraMES);
 
-        liberarMutex();
-        liberarSemaforos();
+    threadEscritaCLP.join();
+    threadLeituraCLP.join();
+    threadEscritaMES.join();
+    threadLeituraMES.join();
 
-        std::cout << "Sistema inicializado. Gerenciando tarefas..." << std::endl;
-        gerenciarTarefas();
+    liberarMutex();
+    liberarSemaforos();
+
+    std::cout << "Sistema inicializado. Gerenciando tarefas..." << std::endl;
+    gerenciarTarefas();
 
     liberarEventos();
     CloseHandle(hMutex);
@@ -473,4 +478,3 @@ int main() {
 
     return 0;
 }
-
