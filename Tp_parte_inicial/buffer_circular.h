@@ -9,8 +9,8 @@
 #include <condition_variable>
 
 constexpr int MAX_MESSAGES = 1000;
-extern HANDLE hMutexLista1;  // Mutex para lista_1
-extern HANDLE hMutexLista2;  // Mutex para lista_2
+extern HANDLE hMutexLista1;
+extern HANDLE hMutexLista2;
 
 struct MensagemDeSetup {
     int nseq;

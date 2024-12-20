@@ -52,7 +52,7 @@ BufferCircular<MensagemDeStatus, 1000> statusBuffer;
 BufferCircular<MensagemDeSetup, 1000> setupBuffer;
 
 HANDLE hThreadMES;
-DWORD WINAPI MESFunc(LPVOID);	// declaração da função do MES
+DWORD WINAPI MESFunc(LPVOID);
 
 
 const wchar_t* SHARED_MEMORY_LISTA1 = L"Global\\SharedBufferLista1";
