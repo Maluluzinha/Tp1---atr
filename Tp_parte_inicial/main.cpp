@@ -327,6 +327,106 @@ void monitorarEventosLeituraCLP() {
     }
 }
 
+void adicionarMensagemAoBufferMES() {
+    static int nseq = 0;
+
+    MensagemDeSetup mensagem;
+
+    mensagem.nseq = nseq++;
+    if (nseq > 99999) nseq = 0;
+
+    mensagem.linha = 1 + (rand() % 2);
+
+    {
+        float valor = static_cast<float>(rand() % 1000) + static_cast<float>(rand() % 100) / 100.0f;
+        std::stringstream ss;
+        ss << std::fixed << std::setprecision(2) << std::setw(8) << std::setfill('0') << valor;
+        mensagem.sp_vel = std::stof(ss.str());
+    }
+
+    {
+        float valor = static_cast<float>(rand() % 1000) + static_cast<float>(rand() % 100) / 100.0f;
+        std::stringstream ss;
+        ss << std::fixed << std::setprecision(2) << std::setw(5) << std::setfill('0') << valor;
+        mensagem.sp_ench = std::stof(ss.str());
+    }
+
+    {
+        float valor = static_cast<float>(rand() % 1000) + static_cast<float>(rand() % 100) / 100.0f;
+        std::stringstream ss;
+        ss << std::fixed << std::setprecision(2) << std::setw(5) << std::setfill('0') << valor;
+        mensagem.sp_sep = std::stof(ss.str());
+    }
+
+    GetLocalTime(&mensagem.timestamp);
+
+    WaitForSingleObject(hMutex, INFINITE);
+    if (!statusBuffer.estaCheia()) {
+        statusBuffer.adicionarMensagem(mensagem);
+        std::cout << "Mensagem adicionada ao buffer: NSEQ=" << 0000 << std::endl;
+    }
+    ReleaseMutex(hMutex);
+
+    ReleaseSemaphore(semEscritoras, 1, NULL);
+}
+
+
+void monitorarEventosEscritaMES() {
+    bool bloqueado = false;
+
+    while (continuarProcesso) {
+        HANDLE eventos[] = { mesReadEvent, escEvent };
+        DWORD waitResult = WaitForMultipleObjects(2, eventos, FALSE, 0);
+
+        if (waitResult == WAIT_OBJECT_0) {
+            bloqueado = !bloqueado;
+            std::cout << (bloqueado ? "Processo bloqueado" : "Processo desbloqueado") << std::endl;
+            ResetEvent(mesReadEvent);
+        }
+        else if (waitResult == WAIT_OBJECT_0 + 1) {
+            std::cout << "Encerrando processo..." << std::endl;
+            continuarProcesso = false;
+            exit(0);
+        }
+
+        if (!bloqueado) {
+            adicionarMensagemAoBuffer();
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+    }
+}
+
+void monitorarEventosLeituraMES() {
+    while (continuarProcesso) {
+        HANDLE eventos[] = { escEvent };
+        DWORD waitResult = WaitForMultipleObjects(1, eventos, FALSE, 0);
+
+        if (waitResult == WAIT_OBJECT_0) {
+            std::cout << "Encerrando processo..." << std::endl;
+            continuarProcesso = false;
+            exit(0);
+        }
+
+        MensagemDeSetup mensagem_mes;
+        WaitForSingleObject(hMutex, INFINITE);
+        if (statusBuffer.recuperarMensagem(mensagem_mes)) {
+
+            std::cout << "MES: " << mensagem_mes.nseq << " | "
+                << "Produção Acumulada: " << mensagem_mes.sp_sep << " | "
+                << "Nível de Xarope: " << mensagem_mes.sp_vel << " | "
+                << "Nível de Água: " << mensagem_mes.sp_ench << " | "
+                << "Timestamp: "
+                << (mensagem_mes.timestamp.wHour < 10 ? "0" : "") << mensagem_mes.timestamp.wHour << ":"
+                << (mensagem_mes.timestamp.wMinute < 10 ? "0" : "") << mensagem_mes.timestamp.wMinute << ":"
+                << (mensagem_mes.timestamp.wSecond < 10 ? "0" : "") << mensagem_mes.timestamp.wSecond
+                << std::endl;
+
+        }
+        ReleaseMutex(hMutex);
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
+}
+
 int main() {
         
          DWORD dwThreadId;

@@ -89,7 +89,7 @@ void criarPipeEEnviarDados() {
             else if (mensagem.setup.sp_vel != 0.0f) {
                 mensagemFormatada_setup =
                     "nseq: " + std::to_string(mensagem.setup.nseq) +
-                    ", linha: " + std::to_string(mensagem.setup.line) +
+                    ", linha: " + std::to_string(mensagem.setup.linha) +
                     ", sp_vel: " + std::to_string(mensagem.setup.sp_vel) +
                     ", sp_ench: " + std::to_string(mensagem.setup.sp_ench) +
                     ", sp_sep: " + std::to_string(mensagem.setup.sp_sep) +

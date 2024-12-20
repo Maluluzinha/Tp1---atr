@@ -14,7 +14,7 @@ extern HANDLE hMutexLista2;  // Mutex para lista_2
 
 struct MensagemDeSetup {
     int nseq;
-    int line;
+    int linha;
     float sp_vel;
     float sp_ench;
     float sp_sep;
@@ -34,6 +34,17 @@ struct MensagemDeStatus {
 union Mensagem {
     MensagemDeSetup setup;
     MensagemDeStatus status;
+};
+
+enum TipoMensagem {
+    SETUP,
+    STATUS
+};
+
+// Estrutura para encapsular a mensagem com seu tipo
+struct MensagemComTipo {
+    TipoMensagem tipo;
+    Mensagem mensagem;
 };
 
 template <typename T, size_t Size>
@@ -78,6 +89,7 @@ public:
     bool estaCheia() const {
         return (tail + 1) % Size == head;
     }
+
 };
 
 extern BufferCircular<Mensagem, MAX_MESSAGES>* lista_1;
