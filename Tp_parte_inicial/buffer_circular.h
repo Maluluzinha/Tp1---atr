@@ -7,6 +7,7 @@
 #include <iostream>
 #include <mutex>
 #include <condition_variable>
+#include <string>
 
 constexpr int MAX_MESSAGES = 1000;
 extern HANDLE hMutexLista1;
@@ -39,12 +40,6 @@ union Mensagem {
 enum TipoMensagem {
     SETUP,
     STATUS
-};
-
-// Estrutura para encapsular a mensagem com seu tipo
-struct MensagemComTipo {
-    TipoMensagem tipo;
-    Mensagem mensagem;
 };
 
 template <typename T, size_t Size>
@@ -91,8 +86,5 @@ public:
     }
 
 };
-
-extern BufferCircular<Mensagem, MAX_MESSAGES>* lista_1;
-extern BufferCircular<MensagemDeStatus, MAX_MESSAGES>* lista_2;
 
 #endif

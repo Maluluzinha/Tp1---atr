@@ -37,8 +37,12 @@ HANDLE escEvent;
 HANDLE retiradaMensagemStatus;
 HANDLE hMapFileLista1;
 HANDLE hMapFileLista2;
-BufferCircular<Mensagem, MAX_MESSAGES>* lista_1;
-BufferCircular<MensagemDeStatus, 100>* lista_22;
+
+BufferCircular<std::string, MAX_MESSAGES> buffer1;
+BufferCircular<std::string, 100> buffer2;
+
+BufferCircular<std::string, MAX_MESSAGES>* lista_1 = &buffer1;
+BufferCircular<std::string, 100>* lista_2 = &buffer2;
 
 
 const wchar_t* mutexName = L"Global\\MeuMutexCompartilhado";
@@ -48,8 +52,7 @@ HANDLE hMutex;
 HANDLE hSemaphore;
 HANDLE hMutexLista1;
 HANDLE hMutexLista2;
-BufferCircular<MensagemDeStatus, 1000> statusBuffer;
-BufferCircular<MensagemDeSetup, 1000> setupBuffer;
+BufferCircular<std::string, 1000> buffer;
 
 HANDLE hThreadMES;
 DWORD WINAPI MESFunc(LPVOID);
@@ -61,78 +64,79 @@ const wchar_t* MUTEX_LISTA1_NAME = L"Global\\MutexLista1";
 const wchar_t* MUTEX_LISTA2_NAME = L"Global\\MutexLista2";
 
 /*------------------ FUNÇÃO GERA DADO DO MES ------------------*/
-int Nseq_dados_mes;
-std::string gerarDadoMES(LPVOID id) {
-
-    std::ostringstream msg;
-    if (Nseq_dados_mes > 999999) {
-        Nseq_dados_mes = 1;
-    }
-
-    Nseq_dados_mes += 1;
-    int linha = rand() % 2 + 1; // Número da linha (1 ou 2)
-    double sp_vel = (rand() % 5000) / 100.0;   // Velocidade (cm/s)
-    double sp_ench = (rand() % 10000) / 10.0;  // Enchimento (m3/min)
-    double sp_sep = (rand() % 1000) / 10.0;    // Separação (cm/s)
-
-    // Obter timestamp
-    SYSTEMTIME local;
-    GetLocalTime(&local);
-    char timestamp[9];
-    sprintf_s(timestamp, "%02d:%02d:%02d", local.wHour, local.wMinute, local.wSecond);
-
-    // Construir mensagem
-    msg << std::setw(5) << std::setfill('0') << Nseq_dados_mes << "|"  // ID formatado
-        << linha << "|"
-        << std::fixed << std::setprecision(2) << sp_vel << "|"
-        << sp_ench << "|"
-        << sp_sep << "|"
-        << timestamp;
-
-    // Exibir mensagem no console (usar c_str para conversão segura)
-    std::cout << "Dado FINAL: " << msg.str() << std::endl;
-
-    return msg.str();
-}
+//int Nseq_dados_mes;
+//
+//std::string gerarDadoMES(LPVOID id) {
+//
+//    std::ostringstream msg;
+//    if (Nseq_dados_mes > 999999) {
+//        Nseq_dados_mes = 1;
+//    }
+//
+//    Nseq_dados_mes += 1;
+//    int linha = rand() % 2 + 1; // Número da linha (1 ou 2)
+//    double sp_vel = (rand() % 5000) / 100.0;   // Velocidade (cm/s)
+//    double sp_ench = (rand() % 10000) / 10.0;  // Enchimento (m3/min)
+//    double sp_sep = (rand() % 1000) / 10.0;    // Separação (cm/s)
+//
+//    // Obter timestamp
+//    SYSTEMTIME local;
+//    GetLocalTime(&local);
+//    char timestamp[9];
+//    sprintf_s(timestamp, "%02d:%02d:%02d", local.wHour, local.wMinute, local.wSecond);
+//
+//    // Construir mensagem
+//    msg << std::setw(5) << std::setfill('0') << Nseq_dados_mes << "|"  // ID formatado
+//        << linha << "|"
+//        << std::fixed << std::setprecision(2) << sp_vel << "|"
+//        << sp_ench << "|"
+//        << sp_sep << "|"
+//        << timestamp;
+//
+//    // Exibir mensagem no console (usar c_str para conversão segura)
+//    std::cout << "Dado FINAL: " << msg.str() << std::endl;
+//
+//    return msg.str();
+//}
 
 
 /*------------------ FUNÇÃO GERA DADO DO CLP ------------------*/
-int Nseq_dados_clp;
-
-std::string gerarDadoCLP(LPVOID id) {
-    std::ostringstream msg;
-
-    if (Nseq_dados_clp > 99999) {
-        Nseq_dados_clp = 1;
-    }
-
-    Nseq_dados_clp += 1;
-    int linha = rand() % 2 + 1;  // Número da linha (1 ou 2)
-    double prod_acum = (rand() % 1000000) / 10.0;  // Produção acumulada (litros)
-    double nivel_xar = (rand() % 1000) / 10.0;  // Nível do tanque de xarope (cm)
-    double nivel_agua = (rand() % 1000) / 10.0;  // Nível do tanque de água (cm)
-    int downtime = rand() % 10000;  // Downtime (minutos)
-
-    // Obter timestamp
-    SYSTEMTIME local;
-    GetLocalTime(&local);
-    char timestamp[9];
-    sprintf_s(timestamp, "%02d:%02d:%02d", local.wHour, local.wMinute, local.wSecond);
-
-    //Mensagem
-    msg << std::setw(5) << std::setfill('0') << Nseq_dados_clp << "|"
-        << linha << "|"  // Linha (LINHA)
-        << std::setw(8) << std::fixed << std::setprecision(1) << prod_acum << "|"
-        << std::setw(5) << std::fixed << std::setprecision(1) << nivel_xar << "|"
-        << std::setw(5) << std::fixed << std::setprecision(1) << nivel_agua << "|"
-        << std::setw(4) << std::setfill('0') << downtime << "|"
-        << timestamp;
-
-    // Exibir mensagem no console
-    std::cout << "Dado FINAL: " << msg.str() << std::endl;
-
-    return msg.str();
-}
+//int Nseq_dados_clp;
+//
+//std::string gerarDadoCLP(LPVOID id) {
+//    std::ostringstream msg;
+//
+//    if (Nseq_dados_clp > 99999) {
+//        Nseq_dados_clp = 1;
+//    }
+//
+//    Nseq_dados_clp += 1;
+//    int linha = rand() % 2 + 1;  // Número da linha (1 ou 2)
+//    double prod_acum = (rand() % 1000000) / 10.0;  // Produção acumulada (litros)
+//    double nivel_xar = (rand() % 1000) / 10.0;  // Nível do tanque de xarope (cm)
+//    double nivel_agua = (rand() % 1000) / 10.0;  // Nível do tanque de água (cm)
+//    int downtime = rand() % 10000;  // Downtime (minutos)
+//
+//    // Obter timestamp
+//    SYSTEMTIME local;
+//    GetLocalTime(&local);
+//    char timestamp[9];
+//    sprintf_s(timestamp, "%02d:%02d:%02d", local.wHour, local.wMinute, local.wSecond);
+//
+//    //Mensagem
+//    msg << std::setw(5) << std::setfill('0') << Nseq_dados_clp << "|"
+//        << linha << "|"  // Linha (LINHA)
+//        << std::setw(8) << std::fixed << std::setprecision(1) << prod_acum << "|"
+//        << std::setw(5) << std::fixed << std::setprecision(1) << nivel_xar << "|"
+//        << std::setw(5) << std::fixed << std::setprecision(1) << nivel_agua << "|"
+//        << std::setw(4) << std::setfill('0') << downtime << "|"
+//        << timestamp;
+//
+//    // Exibir mensagem no console
+//    std::cout << "Dado FINAL: " << msg.str() << std::endl;
+//
+//    return msg.str();
+//}
 
 
 void criarEventos() {
@@ -201,6 +205,8 @@ BufferCircular<Mensagem, MAX_MESSAGES>* lista_mensagem_1;
 
 std::atomic<bool> continuarProcesso{ true };
 
+static int nseq = 0;
+
 void criarMutex() {
     hMutex = CreateMutex(NULL, FALSE, L"Global\\MeuMutexCompartilhado");
     if (hMutex == NULL) {
@@ -228,11 +234,27 @@ void liberarSemaforos() {
     CloseHandle(semLeitoras);
 }
 
+std::string criarMensagemStatus(MensagemDeStatus& mensagem) {
+    std::stringstream ss;
+
+    ss << std::setw(5) << std::setfill('0') << mensagem.nseq << " | "
+        << mensagem.linha << " | "
+        << std::fixed << std::setprecision(2) << std::setw(8) << std::setfill('0') << mensagem.prod_acum << " | "
+        << std::fixed << std::setprecision(2) << std::setw(5) << std::setfill('0') << mensagem.nivel_xar << " | "
+        << std::fixed << std::setprecision(2) << std::setw(5) << std::setfill('0') << mensagem.nivel_agua << " | "
+        << std::setw(5) << std::setfill('0') << mensagem.downtime << " | "
+        << (mensagem.timestamp.wHour < 10 ? "0" : "") << mensagem.timestamp.wHour << ":"
+        << (mensagem.timestamp.wMinute < 10 ? "0" : "") << mensagem.timestamp.wMinute << ":"
+        << (mensagem.timestamp.wSecond < 10 ? "0" : "") << mensagem.timestamp.wSecond;
+
+    return ss.str();
+}
+
 void adicionarMensagemAoBuffer() {
-    static int nseq = 0;
 
     MensagemDeStatus mensagem;
 
+    WaitForSingleObject(hMutex, INFINITE);
     mensagem.nseq = nseq++;
     if (nseq > 99999) nseq = 0;
 
@@ -263,9 +285,8 @@ void adicionarMensagemAoBuffer() {
 
     GetLocalTime(&mensagem.timestamp);
 
-    WaitForSingleObject(hMutex, INFINITE);
-    if (!statusBuffer.estaCheia()) {
-        statusBuffer.adicionarMensagem(mensagem);
+    if (!buffer1.estaCheia()) {
+        buffer1.adicionarMensagem(criarMensagemStatus(mensagem));
         std::cout << "Mensagem adicionada ao buffer: NSEQ=" << mensagem.downtime << std::endl;
     }
     ReleaseMutex(hMutex);
@@ -309,30 +330,36 @@ void monitorarEventosLeituraCLP() {
             exit(0);
         }
 
-        MensagemDeStatus mensagem;
+        std::string mensagem;
         WaitForSingleObject(hMutex, INFINITE);
-        if (statusBuffer.recuperarMensagem(mensagem)) {
-            std::cout << std::setfill('0')
-                << std::setw(5) << mensagem.nseq << " | "
-                << mensagem.linha << " | "
-                << std::setw(8) << std::fixed << std::setprecision(1) << mensagem.prod_acum << " | "
-                << std::setw(5) << mensagem.nivel_xar << " | "
-                << std::setw(5) << mensagem.nivel_agua << " | "
-                << std::setw(4) << mensagem.downtime << " | "
-                << std::setw(2) << mensagem.timestamp.wHour << ":"
-                << std::setw(2) << mensagem.timestamp.wMinute << ":"
-                << std::setw(2) << mensagem.timestamp.wSecond << std::endl;
+        if (buffer1.recuperarMensagem(mensagem) && mensagem.length() == 55) {
+            std::cout << "\033[34m" << mensagem << "\033[0m" << std::endl;
         }
         ReleaseMutex(hMutex);
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 }
 
+std::string criarMensagemSetup(MensagemDeSetup& mensagem) {
+    std::stringstream ss;
+
+    ss << std::setw(5) << std::setfill('0') << mensagem.nseq << " | "
+        << mensagem.linha << " | "
+        << std::fixed << std::setprecision(2) << std::setw(8) << std::setfill('0') << mensagem.sp_vel << " | "
+        << std::fixed << std::setprecision(2) << std::setw(5) << std::setfill('0') << mensagem.sp_ench << " | "
+        << std::fixed << std::setprecision(2) << std::setw(5) << std::setfill('0') << mensagem.sp_sep << " | "
+        << (mensagem.timestamp.wHour < 10 ? "0" : "") << mensagem.timestamp.wHour << ":"
+        << (mensagem.timestamp.wMinute < 10 ? "0" : "") << mensagem.timestamp.wMinute << ":"
+        << (mensagem.timestamp.wSecond < 10 ? "0" : "") << mensagem.timestamp.wSecond;
+
+    return ss.str();
+}
+
 void adicionarMensagemAoBufferMES() {
-    static int nseq = 0;
 
     MensagemDeSetup mensagem;
 
+    WaitForSingleObject(hMutex, INFINITE);
     mensagem.nseq = nseq++;
     if (nseq > 99999) nseq = 0;
 
@@ -361,10 +388,9 @@ void adicionarMensagemAoBufferMES() {
 
     GetLocalTime(&mensagem.timestamp);
 
-    WaitForSingleObject(hMutex, INFINITE);
-    if (!setupBuffer.estaCheia()) {
-        setupBuffer.adicionarMensagem(mensagem);
-        std::cout << "Mensagem adicionada ao buffer: NSEQ=" << 0000 << std::endl;
+    if (!buffer1.estaCheia()) {
+        buffer1.adicionarMensagem(criarMensagemSetup(mensagem));
+        std::cout << "Mensagem adicionada ao buffer: NSEQ=" << nseq << std::endl;
     }
     ReleaseMutex(hMutex);
 
@@ -407,20 +433,12 @@ void monitorarEventosLeituraMES() {
             exit(0);
         }
 
-        MensagemDeSetup mensagem_mes;
+        std::string mensagem_mes;
 
         WaitForSingleObject(hMutex, INFINITE);
-        if (setupBuffer.recuperarMensagem(mensagem_mes)) {
+        if (buffer1.recuperarMensagem(mensagem_mes) && mensagem_mes.length() != 55) {
 
-            std::cout << "MES: " << mensagem_mes.nseq << " | "
-                << "Produção Acumulada: " << mensagem_mes.sp_sep << " | "
-                << "Nível de Xarope: " << mensagem_mes.sp_vel << " | "
-                << "Nível de Água: " << mensagem_mes.sp_ench << " | "
-                << "Timestamp: "
-                << (mensagem_mes.timestamp.wHour < 10 ? "0" : "") << mensagem_mes.timestamp.wHour << ":"
-                << (mensagem_mes.timestamp.wMinute < 10 ? "0" : "") << mensagem_mes.timestamp.wMinute << ":"
-                << (mensagem_mes.timestamp.wSecond < 10 ? "0" : "") << mensagem_mes.timestamp.wSecond
-                << std::endl;
+            std::cout << "\033[35m" << mensagem_mes << "\033[0m" << std::endl;
 
         }
         ReleaseMutex(hMutex);
@@ -431,7 +449,6 @@ void monitorarEventosLeituraMES() {
 int main() {
 
     DWORD dwThreadId;
-    //Mutex compartilhado
     hMutex = CreateMutex(NULL, FALSE, mutexName);
     if (hMutex == NULL) {
         std::cerr << "Erro ao criar o mutex. Código: " << GetLastError() << std::endl;
@@ -447,7 +464,6 @@ int main() {
     criarEventos();
 
     iniciarProcesso(L"..\\x64\\Debug\\Tarefa_Leitura_Teclado.exe");
-    iniciarProcesso(L"..\\x64\\Debug\\Tarefa_Leitura_CLP.exe");
     iniciarProcesso(L"..\\x64\\Debug\\Tarefa_de_Retirada_de_Mensagem.exe");
     iniciarProcesso(L"..\\x64\\Debug\\Tarefa_Exibicao_de_Setups_de_Producao.exe");
     iniciarProcesso(L"..\\x64\\Debug\\Tarefa_Exibicao_Dados_Processo.exe");
