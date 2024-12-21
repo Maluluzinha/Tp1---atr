@@ -225,13 +225,15 @@ void liberarSemaforos() {
     CloseHandle(semLeitoras);
 }
 
+static int nseq = 0;
+
 void adicionarMensagemAoBuffer() {
-    static int nseq = 0;
 
     MensagemUnificada mensagem{};
 
-    mensagem.tipo == TipoMensagem::CLP;
+    mensagem.tipo = TipoMensagem::CLP;
 
+    WaitForSingleObject(hMutex, INFINITE);
     mensagem.nseq = nseq++;
     if (nseq > 99999) nseq = 0;
 
@@ -262,7 +264,6 @@ void adicionarMensagemAoBuffer() {
 
     GetLocalTime(&mensagem.timestamp);
 
-    WaitForSingleObject(hMutex, INFINITE);
     if (!bufferUnificado->estaCheia()) {
         bufferUnificado->adicionarMensagem(mensagem);
         //std::cout << "Mensagem adicionada ao buffer: NSEQ=" << mensagem.valor4 << std::endl;
@@ -332,14 +333,13 @@ void monitorarEventosLeituraCLP() {
     }
 }
 
-
 void adicionarMensagemAoBufferMES() {
-    static int nseq = 0;
 
     MensagemUnificada mensagem{};
 
-    mensagem.tipo == TipoMensagem::MES;
+    mensagem.tipo = TipoMensagem::MES;
 
+    WaitForSingleObject(hMutex, INFINITE);
     mensagem.nseq = nseq++;
     if (nseq > 99999) nseq = 0;
 
@@ -368,7 +368,7 @@ void adicionarMensagemAoBufferMES() {
 
     GetLocalTime(&mensagem.timestamp);
 
-    WaitForSingleObject(hMutex, INFINITE);
+    
     if (!bufferUnificado->estaCheia()) {
         bufferUnificado->adicionarMensagem(mensagem);
         //std::cout << "Mensagem adicionada ao buffer: NSEQ=" << 0000 << std::endl;
@@ -469,11 +469,14 @@ void retirarMensagemDoBuffer() {
                 << std::setfill('0')
                 << std::setw(5) << mensagem.nseq << "|"
                 << mensagem.linha << "|"
-                << std::fixed << std::setprecision(1)
-                << std::setw(8) << std::setfill('0') << mensagem.valor1 << "|"
-                << std::setw(5) << std::setfill('0') << mensagem.valor2 << "|"
-                << std::setw(5) << std::setfill('0') << mensagem.valor3 << "|"
-                << std::setw(4) << std::setfill('0') << mensagem.valor4 << "|"
+                << std::setw(5) << std::setfill('0') << std::fixed << std::setprecision(1)
+                << mensagem.valor1 << "|"
+                << std::setw(5) << std::setfill('0') << std::fixed << std::setprecision(1) 
+                << mensagem.valor2 << "|"
+                << std::setw(5) << std::setfill('0') << std::fixed << std::setprecision(1)
+                << mensagem.valor3 << "|"
+                << std::setw(4) << std::setfill('0') << std::fixed << std::setprecision(0)
+                << mensagem.valor4 << "|"
                 << std::setw(2) << std::setfill('0') << mensagem.timestamp.wHour << ":"
                 << std::setw(2) << std::setfill('0') << mensagem.timestamp.wMinute << ":"
                 << std::setw(2) << std::setfill('0') << mensagem.timestamp.wSecond
@@ -508,56 +511,61 @@ void monitorarEventosRetiradaDeMensagens() {
     }
 }
 
-
-int main() {
-
-    DWORD dwThreadId;
-    bufferUnificado = new BufferCircular<MensagemUnificada, MAX_MESSAGES>();
-
-    hMutex = CreateMutex(NULL, FALSE, mutexName);
-    if (hMutex == NULL) {
-        std::cerr << "Erro ao criar o mutex. Código: " << GetLastError() << std::endl;
-        exit(EXIT_FAILURE);
+void liberarRecursos() {
+    if (bufferUnificado) {
+        delete bufferUnificado;
+        bufferUnificado = nullptr;
     }
-
-    hSemaphore = CreateSemaphore(NULL, 0, 1, SEMAPHORE_NAME);
-    if (hSemaphore == NULL) {
-        std::cerr << "Erro ao criar o semáforo. Código: " << GetLastError() << std::endl;
-        return 1;
-    }
-
-    criarEventos();
-
-    iniciarProcesso(L"..\\x64\\Debug\\Tarefa_Leitura_Teclado.exe");
-    iniciarProcesso(L"..\\x64\\Debug\\Tarefa_Leitura_CLP.exe");
-    iniciarProcesso(L"..\\x64\\Debug\\Tarefa_Exibicao_de_Setups_de_Producao.exe");
-    iniciarProcesso(L"..\\x64\\Debug\\Tarefa_Exibicao_Dados_Processo.exe");
-
-    /*------------- CLP --------------*/
-    criarMutex();
-    criarSemaforos();
-
-    std::thread threadEscritaCLP(monitorarEventosEscritaCLP);
-    std::thread threadLeituraCLP(monitorarEventosLeituraCLP);
-    std::thread threadEscritaMES(monitorarEventosEscritaMES);
-    std::thread threadLeituraMES(monitorarEventosLeituraMES);
-    std::thread threadRetiradaDeMensagens(monitorarEventosRetiradaDeMensagens);
-
-    threadEscritaCLP.join();
-    threadLeituraCLP.join();
-    threadEscritaMES.join();
-    threadLeituraMES.join();
-    threadRetiradaDeMensagens.join();
-
-    liberarMutex();
-    liberarSemaforos();
-
-    std::cout << "Sistema inicializado. Gerenciando tarefas..." << std::endl;
-    gerenciarTarefas();
 
     liberarEventos();
-    CloseHandle(hMutex);
-    CloseHandle(hSemaphore);
 
+    if (hMutex) CloseHandle(hMutex);
+    if (hMutexLista1) CloseHandle(hMutexLista1);
+    if (hMutexLista2) CloseHandle(hMutexLista2);
+    if (hMutexLista1_clp) CloseHandle(hMutexLista1_clp);
+
+    if (hSemaphore) CloseHandle(hSemaphore);
+    if (semEscritoras) CloseHandle(semEscritoras);
+    if (semLeitoras) CloseHandle(semLeitoras);
+
+    if (hMapFileLista1) CloseHandle(hMapFileLista1);
+    if (hMapFileLista2) CloseHandle(hMapFileLista2);
+
+    if (retiradaMensagemStatus) CloseHandle(retiradaMensagemStatus);
+}
+
+int main() {
+    try {
+        bufferUnificado = new BufferCircular<MensagemUnificada, MAX_MESSAGES>();
+
+        criarEventos();
+        criarMutex();
+        criarSemaforos();
+
+        iniciarProcesso(L"..\\x64\\Debug\\Tarefa_Leitura_Teclado.exe");
+        iniciarProcesso(L"..\\x64\\Debug\\Tarefa_Leitura_CLP.exe");
+        iniciarProcesso(L"..\\x64\\Debug\\Tarefa_Exibicao_de_Setups_de_Producao.exe");
+        iniciarProcesso(L"..\\x64\\Debug\\Tarefa_Exibicao_Dados_Processo.exe");
+
+        std::thread threadEscritaCLP(monitorarEventosEscritaCLP);
+        std::thread threadLeituraCLP(monitorarEventosLeituraCLP);
+        std::thread threadEscritaMES(monitorarEventosEscritaMES);
+        std::thread threadLeituraMES(monitorarEventosLeituraMES);
+        std::thread threadRetiradaDeMensagens(monitorarEventosRetiradaDeMensagens);
+
+        threadEscritaCLP.join();
+        threadLeituraCLP.join();
+        threadEscritaMES.join();
+        threadLeituraMES.join();
+        threadRetiradaDeMensagens.join();
+
+        std::cout << "Sistema inicializado. Gerenciando tarefas..." << std::endl;
+        gerenciarTarefas();
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Erro: " << e.what() << std::endl;
+    }
+
+    liberarRecursos();
     return 0;
 }
