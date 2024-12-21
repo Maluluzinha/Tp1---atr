@@ -55,8 +55,8 @@ HANDLE hThreadMES;
 DWORD WINAPI MESFunc(LPVOID);	// declaração da função do MES
 
 
-const wchar_t* SHARED_MEMORY_LISTA1 = L"Global\\SharedBufferLista1";
-const wchar_t* SHARED_MEMORY_LISTA2 = L"Global\\SharedBufferLista2";
+//const wchar_t* SHARED_MEMORY_LISTA1 = L"Global\\SharedBufferLista1";
+//const wchar_t* SHARED_MEMORY_LISTA2 = L"Global\\SharedBufferLista2";
 const wchar_t* MUTEX_LISTA1_NAME = L"Global\\MutexLista1";
 const wchar_t* MUTEX_LISTA2_NAME = L"Global\\MutexLista2";
 

@@ -69,21 +69,21 @@ int main() {
         return 1;
     }
 
-    // Abrir o mapeamento de memória compartilhada
-    HANDLE hMapFileLista2 = OpenFileMapping(FILE_MAP_ALL_ACCESS, FALSE, SHARED_MEMORY_LISTA2);
-    if (hMapFileLista2 == NULL) {
-        std::cerr << "Erro ao abrir a memória compartilhada para lista_2. Código: " << GetLastError() << std::endl;
-        exit(EXIT_FAILURE);
-    }
+    //// Abrir o mapeamento de memória compartilhada
+    //HANDLE hMapFileLista2 = OpenFileMapping(FILE_MAP_ALL_ACCESS, FALSE, SHARED_MEMORY_LISTA2);
+    //if (hMapFileLista2 == NULL) {
+    //    std::cerr << "Erro ao abrir a memória compartilhada para lista_2. Código: " << GetLastError() << std::endl;
+    //    exit(EXIT_FAILURE);
+    //}
 
-    // Mapear a memória compartilhada
-    lista_22 = (BufferCircular<MensagemDeStatus, 100>*)MapViewOfFile(
-        hMapFileLista2, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(BufferCircular<MensagemDeStatus, 100>)
-    );
-    if (lista_22 == NULL) {
-        std::cerr << "Erro ao mapear a memória compartilhada para lista_2. Código: " << GetLastError() << std::endl;
-        exit(EXIT_FAILURE);
-    }
+    //// Mapear a memória compartilhada
+    //lista_22 = (BufferCircular<MensagemDeStatus, 100>*)MapViewOfFile(
+    //    hMapFileLista2, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(BufferCircular<MensagemDeStatus, 100>)
+    //);
+    //if (lista_22 == NULL) {
+    //    std::cerr << "Erro ao mapear a memória compartilhada para lista_2. Código: " << GetLastError() << std::endl;
+    //    exit(EXIT_FAILURE);
+    //}
 
     // Criar o mutex
     criarMutex();
@@ -94,8 +94,8 @@ int main() {
     // Liberar os recursos
     liberarMutex();
     CloseHandle(hSemaphore);
-    UnmapViewOfFile(lista_22);
-    CloseHandle(hMapFileLista2);
+    //UnmapViewOfFile(lista_22);
+    //CloseHandle(hMapFileLista2);
 
     return 0;
 }
