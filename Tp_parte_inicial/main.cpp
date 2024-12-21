@@ -451,8 +451,11 @@ void retirarMensagemDoBuffer() {
                 << std::setfill('0')
                 << std::setw(5) << mensagem.nseq << "|"
                 << mensagem.linha << "|"
+                << std::setw(5) << std::setfill('0')
                 << mensagem.valor1 << "|"
+                << std::setw(6) << std::setfill('0')
                 << mensagem.valor2 << "|"
+                << std::setw(5) << std::setfill('0')
                 << mensagem.valor3 << "|"
                 << std::setfill('0')
                 << std::setw(2) << mensagem.timestamp.wHour << ":"
