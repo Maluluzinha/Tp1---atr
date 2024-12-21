@@ -12,39 +12,20 @@ constexpr int MAX_MESSAGES = 1000;
 extern HANDLE hMutexLista1;  // Mutex para lista_1
 extern HANDLE hMutexLista2;  // Mutex para lista_2
 
-struct MensagemDeSetup {
-    int nseq;
-    int linha;
-    float sp_vel;
-    float sp_ench;
-    float sp_sep;
-    SYSTEMTIME timestamp;
-};
-
-struct MensagemDeStatus {
-    int nseq;
-    int linha;
-    float prod_acum;
-    float nivel_xar;
-    float nivel_agua;
-    int downtime;
-    SYSTEMTIME timestamp;
-};
-
-union Mensagem {
-    MensagemDeSetup setup;
-    MensagemDeStatus status;
-};
-
 enum TipoMensagem {
-    SETUP,
-    STATUS
+    MES,
+    CLP
 };
 
-// Estrutura para encapsular a mensagem com seu tipo
-struct MensagemComTipo {
+struct MensagemUnificada {
     TipoMensagem tipo;
-    Mensagem mensagem;
+    int nseq;
+    int linha;
+    double valor1;
+    double valor2;
+    double valor3;
+    double valor4;
+    SYSTEMTIME timestamp;
 };
 
 template <typename T, size_t Size>
@@ -91,8 +72,5 @@ public:
     }
 
 };
-
-extern BufferCircular<Mensagem, MAX_MESSAGES>* lista_1;
-extern BufferCircular<MensagemDeStatus, MAX_MESSAGES>* lista_2;
 
 #endif

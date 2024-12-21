@@ -37,9 +37,9 @@ HANDLE escEvent;
 HANDLE retiradaMensagemStatus;
 HANDLE hMapFileLista1;
 HANDLE hMapFileLista2;
-BufferCircular<Mensagem, MAX_MESSAGES>* lista_1;
-BufferCircular<MensagemDeStatus, 100>* lista_22;
 
+
+BufferCircular<MensagemUnificada, MAX_MESSAGES>* bufferUnificado;
 
 const wchar_t* mutexName = L"Global\\MeuMutexCompartilhado";
 const wchar_t* SEMAPHORE_NAME = L"Global\\MeuSemaforo";
@@ -48,8 +48,6 @@ HANDLE hMutex;
 HANDLE hSemaphore;
 HANDLE hMutexLista1;
 HANDLE hMutexLista2;
-BufferCircular<MensagemDeStatus, 1000> statusBuffer;
-BufferCircular<MensagemDeSetup, 1000> setupBuffer;
 
 HANDLE hThreadMES;
 DWORD WINAPI MESFunc(LPVOID);	// declaração da função do MES
@@ -197,7 +195,6 @@ HANDLE semEscritoras;
 HANDLE semLeitoras;
 
 HANDLE hMutexLista1_clp;
-BufferCircular<Mensagem, MAX_MESSAGES>* lista_mensagem_1;
 
 std::atomic<bool> continuarProcesso{ true };
 
@@ -231,7 +228,9 @@ void liberarSemaforos() {
 void adicionarMensagemAoBuffer() {
     static int nseq = 0;
 
-    MensagemDeStatus mensagem;
+    MensagemUnificada mensagem{};
+
+    mensagem.tipo == TipoMensagem::CLP;
 
     mensagem.nseq = nseq++;
     if (nseq > 99999) nseq = 0;
@@ -242,31 +241,31 @@ void adicionarMensagemAoBuffer() {
         float valor = static_cast<float>(rand() % 1000) + static_cast<float>(rand() % 100) / 100.0f;
         std::stringstream ss;
         ss << std::fixed << std::setprecision(2) << std::setw(8) << std::setfill('0') << valor;
-        mensagem.prod_acum = std::stof(ss.str());
+        mensagem.valor1 = std::stof(ss.str());
     }
 
     {
         float valor = static_cast<float>(rand() % 1000) + static_cast<float>(rand() % 100) / 100.0f;
         std::stringstream ss;
         ss << std::fixed << std::setprecision(2) << std::setw(5) << std::setfill('0') << valor;
-        mensagem.nivel_xar = std::stof(ss.str());
+        mensagem.valor2 = std::stof(ss.str());
     }
 
     {
         float valor = static_cast<float>(rand() % 1000) + static_cast<float>(rand() % 100) / 100.0f;
         std::stringstream ss;
         ss << std::fixed << std::setprecision(2) << std::setw(5) << std::setfill('0') << valor;
-        mensagem.nivel_agua = std::stof(ss.str());
+        mensagem.valor3 = std::stof(ss.str());
     }
 
-    mensagem.downtime = rand() % 10000;
+    mensagem.valor4 = rand() % 10000;
 
     GetLocalTime(&mensagem.timestamp);
 
     WaitForSingleObject(hMutex, INFINITE);
-    if (!statusBuffer.estaCheia()) {
-        statusBuffer.adicionarMensagem(mensagem);
-        std::cout << "Mensagem adicionada ao buffer: NSEQ=" << mensagem.downtime << std::endl;
+    if (!bufferUnificado->estaCheia()) {
+        bufferUnificado->adicionarMensagem(mensagem);
+        //std::cout << "Mensagem adicionada ao buffer: NSEQ=" << mensagem.valor4 << std::endl;
     }
     ReleaseMutex(hMutex);
 
@@ -309,29 +308,37 @@ void monitorarEventosLeituraCLP() {
             exit(0);
         }
 
-        MensagemDeStatus mensagem;
+        MensagemUnificada mensagem;
+
         WaitForSingleObject(hMutex, INFINITE);
-        if (statusBuffer.recuperarMensagem(mensagem)) {
-            std::cout << std::setfill('0')
-                << std::setw(5) << mensagem.nseq << " | "
-                << mensagem.linha << " | "
-                << std::setw(8) << std::fixed << std::setprecision(1) << mensagem.prod_acum << " | "
-                << std::setw(5) << mensagem.nivel_xar << " | "
-                << std::setw(5) << mensagem.nivel_agua << " | "
-                << std::setw(4) << mensagem.downtime << " | "
-                << std::setw(2) << mensagem.timestamp.wHour << ":"
-                << std::setw(2) << mensagem.timestamp.wMinute << ":"
-                << std::setw(2) << mensagem.timestamp.wSecond << std::endl;
+        if (bufferUnificado->recuperarMensagem(mensagem)) {
+            if (mensagem.tipo == TipoMensagem::CLP) {
+                std::cout << std::setfill('0')
+                    << std::setw(5) << mensagem.nseq << "|"
+                    << mensagem.linha << "|"
+                    << std::fixed << std::setprecision(1)
+                    << std::setw(8) << std::setfill('0') << mensagem.valor1 << "|"
+                    << std::setw(5) << std::setfill('0') << mensagem.valor2 << "|"
+                    << std::setw(5) << std::setfill('0') << mensagem.valor3 << "|"
+                    << std::setw(4) << std::setfill('0') << mensagem.valor4 << "|"
+                    << std::setw(2) << std::setfill('0') << mensagem.timestamp.wHour << ":"
+                    << std::setw(2) << std::setfill('0') << mensagem.timestamp.wMinute << ":"
+                    << std::setw(2) << std::setfill('0') << mensagem.timestamp.wSecond
+                    << std::endl;
+            }
         }
         ReleaseMutex(hMutex);
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 }
 
+
 void adicionarMensagemAoBufferMES() {
     static int nseq = 0;
 
-    MensagemDeSetup mensagem;
+    MensagemUnificada mensagem{};
+
+    mensagem.tipo == TipoMensagem::MES;
 
     mensagem.nseq = nseq++;
     if (nseq > 99999) nseq = 0;
@@ -342,29 +349,29 @@ void adicionarMensagemAoBufferMES() {
         float valor = static_cast<float>(rand() % 1000) + static_cast<float>(rand() % 100) / 100.0f;
         std::stringstream ss;
         ss << std::fixed << std::setprecision(2) << std::setw(8) << std::setfill('0') << valor;
-        mensagem.sp_vel = std::stof(ss.str());
+        mensagem.valor1 = std::stof(ss.str());
     }
 
     {
         float valor = static_cast<float>(rand() % 1000) + static_cast<float>(rand() % 100) / 100.0f;
         std::stringstream ss;
         ss << std::fixed << std::setprecision(2) << std::setw(5) << std::setfill('0') << valor;
-        mensagem.sp_ench = std::stof(ss.str());
+        mensagem.valor2 = std::stof(ss.str());
     }
 
     {
         float valor = static_cast<float>(rand() % 1000) + static_cast<float>(rand() % 100) / 100.0f;
         std::stringstream ss;
         ss << std::fixed << std::setprecision(2) << std::setw(5) << std::setfill('0') << valor;
-        mensagem.sp_sep = std::stof(ss.str());
+        mensagem.valor3 = std::stof(ss.str());
     }
 
     GetLocalTime(&mensagem.timestamp);
 
     WaitForSingleObject(hMutex, INFINITE);
-    if (!setupBuffer.estaCheia()) {
-        setupBuffer.adicionarMensagem(mensagem);
-        std::cout << "Mensagem adicionada ao buffer: NSEQ=" << 0000 << std::endl;
+    if (!bufferUnificado->estaCheia()) {
+        bufferUnificado->adicionarMensagem(mensagem);
+        //std::cout << "Mensagem adicionada ao buffer: NSEQ=" << 0000 << std::endl;
     }
     ReleaseMutex(hMutex);
 
@@ -407,31 +414,103 @@ void monitorarEventosLeituraMES() {
             exit(0);
         }
 
-        MensagemDeSetup mensagem_mes;
+        MensagemUnificada mensagem;
 
         WaitForSingleObject(hMutex, INFINITE);
-        if (setupBuffer.recuperarMensagem(mensagem_mes)) {
-
-            std::cout << "MES: " << mensagem_mes.nseq << " | "
-                << "Produção Acumulada: " << mensagem_mes.sp_sep << " | "
-                << "Nível de Xarope: " << mensagem_mes.sp_vel << " | "
-                << "Nível de Água: " << mensagem_mes.sp_ench << " | "
-                << "Timestamp: "
-                << (mensagem_mes.timestamp.wHour < 10 ? "0" : "") << mensagem_mes.timestamp.wHour << ":"
-                << (mensagem_mes.timestamp.wMinute < 10 ? "0" : "") << mensagem_mes.timestamp.wMinute << ":"
-                << (mensagem_mes.timestamp.wSecond < 10 ? "0" : "") << mensagem_mes.timestamp.wSecond
-                << std::endl;
-
+        if (bufferUnificado->recuperarMensagem(mensagem)) {
+            /*if (mensagem.tipo == TipoMensagem::MES) {
+                std::cout << std::setfill('0')
+                    << std::setw(5) << mensagem.nseq << "|"
+                    << mensagem.linha << "|"
+                    << std::fixed << std::setfill('0') << std::setprecision(2)
+                    << mensagem.valor1 << "|" 
+                    << std::fixed << std::setfill('0') << std::setprecision(2)
+                    << mensagem.valor2 << "|" 
+                    << std::fixed << std::setfill('0') << std::setprecision(2)
+                    << mensagem.valor3 << "|"  
+                    << std::setw(2) << std::setfill('0') << mensagem.timestamp.wHour << ":"
+                    << std::setw(2) << std::setfill('0') << mensagem.timestamp.wMinute << ":"
+                    << std::setw(2) << std::setfill('0') << mensagem.timestamp.wSecond
+                    << std::endl;
+            }*/
         }
         ReleaseMutex(hMutex);
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 }
 
+void retirarMensagemDoBuffer() {
+    MensagemUnificada mensagem;
+    const std::string LILAC = "\033[95m";
+    const std::string RESET = "\033[0m";
+
+    WaitForSingleObject(hMutex, INFINITE);
+    if (bufferUnificado->recuperarMensagem(mensagem)) {
+        if (mensagem.tipo == TipoMensagem::MES) {
+            std::cout << RESET
+                << std::setfill('0')
+                << std::setw(5) << mensagem.nseq << "|"
+                << mensagem.linha << "|"
+                << mensagem.valor1 << "|"
+                << mensagem.valor2 << "|"
+                << mensagem.valor3 << "|"
+                << std::setfill('0')
+                << std::setw(2) << mensagem.timestamp.wHour << ":"
+                << std::setw(2) << mensagem.timestamp.wMinute << ":"
+                << std::setw(2) << mensagem.timestamp.wSecond
+                << LILAC << std::endl;
+        }
+        else {
+
+            std::cout << LILAC
+                << std::setfill('0')
+                << std::setw(5) << mensagem.nseq << "|"
+                << mensagem.linha << "|"
+                << std::fixed << std::setprecision(1)
+                << std::setw(8) << std::setfill('0') << mensagem.valor1 << "|"
+                << std::setw(5) << std::setfill('0') << mensagem.valor2 << "|"
+                << std::setw(5) << std::setfill('0') << mensagem.valor3 << "|"
+                << std::setw(4) << std::setfill('0') << mensagem.valor4 << "|"
+                << std::setw(2) << std::setfill('0') << mensagem.timestamp.wHour << ":"
+                << std::setw(2) << std::setfill('0') << mensagem.timestamp.wMinute << ":"
+                << std::setw(2) << std::setfill('0') << mensagem.timestamp.wSecond
+                << RESET << std::endl;
+        }
+    }
+    ReleaseMutex(hMutex);
+}
+
+void monitorarEventosRetiradaDeMensagens() {
+    bool bloqueado = false;
+
+    while (continuarProcesso) {
+        HANDLE eventos[] = { messageRetrievalEvent, escEvent };
+        DWORD waitResult = WaitForMultipleObjects(2, eventos, FALSE, 0);
+
+        if (waitResult == WAIT_OBJECT_0) {
+            bloqueado = !bloqueado;
+            std::cout << (bloqueado ? "Processo bloqueado" : "Processo desbloqueado") << std::endl;
+            ResetEvent(messageRetrievalEvent);
+        }
+        else if (waitResult == WAIT_OBJECT_0 + 1) {
+            std::cout << "Encerrando processo..." << std::endl;
+            continuarProcesso = false;
+            exit(0);
+        }
+
+        if (!bloqueado) {
+            retirarMensagemDoBuffer();
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+    }
+}
+
+
 int main() {
 
     DWORD dwThreadId;
-    //Mutex compartilhado
+    bufferUnificado = new BufferCircular<MensagemUnificada, MAX_MESSAGES>();
+
     hMutex = CreateMutex(NULL, FALSE, mutexName);
     if (hMutex == NULL) {
         std::cerr << "Erro ao criar o mutex. Código: " << GetLastError() << std::endl;
@@ -448,7 +527,6 @@ int main() {
 
     iniciarProcesso(L"..\\x64\\Debug\\Tarefa_Leitura_Teclado.exe");
     iniciarProcesso(L"..\\x64\\Debug\\Tarefa_Leitura_CLP.exe");
-    iniciarProcesso(L"..\\x64\\Debug\\Tarefa_de_Retirada_de_Mensagem.exe");
     iniciarProcesso(L"..\\x64\\Debug\\Tarefa_Exibicao_de_Setups_de_Producao.exe");
     iniciarProcesso(L"..\\x64\\Debug\\Tarefa_Exibicao_Dados_Processo.exe");
 
@@ -460,11 +538,13 @@ int main() {
     std::thread threadLeituraCLP(monitorarEventosLeituraCLP);
     std::thread threadEscritaMES(monitorarEventosEscritaMES);
     std::thread threadLeituraMES(monitorarEventosLeituraMES);
+    std::thread threadRetiradaDeMensagens(monitorarEventosRetiradaDeMensagens);
 
     threadEscritaCLP.join();
     threadLeituraCLP.join();
     threadEscritaMES.join();
     threadLeituraMES.join();
+    threadRetiradaDeMensagens.join();
 
     liberarMutex();
     liberarSemaforos();
