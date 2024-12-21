@@ -6,6 +6,8 @@
 #include <chrono>
 #include <atomic>
 #include <windows.h>
+#include <io.h> 
+#include <fcntl.h> 
 
 std::atomic<bool> execucao{ true };
 std::atomic<bool> bloqueioMES{ false };
@@ -21,20 +23,20 @@ HANDLE setupDisplayEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, L"SetupDisplayEv
 HANDLE statusDisplayEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, L"StatusDisplayEvent");
 HANDLE escEvent = OpenEvent(SYNCHRONIZE | EVENT_MODIFY_STATE, FALSE, L"EscEvent");
 
-void exibirEstado(const std::string& tarefa, bool bloqueado) {
-    std::cout << tarefa << " está " << (bloqueado ? "BLOQUEADA" : "EM EXECUÇÃO") << std::endl;
+void exibirEstado(const std::wstring& tarefa, bool bloqueado) {
+    std::wcout << tarefa << L" está " << (bloqueado ? L"BLOQUEADA" : L"EM EXECUÇÃO") << std::endl;
 }
 
 void tarefaLeituraTeclado() {
-    std::map<char, std::pair<std::string, std::atomic<bool>*>> teclas = {
-        {'M', {"Tarefa de leitura MES", &bloqueioMES}},
-        {'c', {"Tarefa de leitura CLP", &bloqueioCLP}},
-        {'r', {"Tarefa de retirada de mensagens", &bloqueioRetirada}},
-        {'s', {"Tarefa de setup de produção", &bloqueioSetup}},
-        {'p', {"Tarefa de exibição de dados de processo", &bloqueioDados}},
+    std::map<char, std::pair<std::wstring, std::atomic<bool>*>> teclas = {
+        {'M', {L"Tarefa de leitura MES", &bloqueioMES}},
+        {'c', {L"Tarefa de leitura CLP", &bloqueioCLP}},
+        {'r', {L"Tarefa de retirada de mensagens", &bloqueioRetirada}},
+        {'s', {L"Tarefa de setup de produção", &bloqueioSetup}},
+        {'p', {L"Tarefa de exibição de dados de processo", &bloqueioDados}},
     };
 
-    std::cout << "Pressione as teclas definidas para controle das tarefas ou ESC para sair.\n";
+    std::wcout << L"Pressione as teclas definidas para controle das tarefas ou ESC para sair.\n";
     char tecla;
     while (execucao) {
         if (_kbhit()) {
@@ -42,7 +44,7 @@ void tarefaLeituraTeclado() {
             if (tecla == 27) {
                 execucao = false;
                 SetEvent(escEvent);
-                std::cout << "Encerrando todas as tarefas...\n";
+                std::wcout << L"Encerrando todas as tarefas...\n";
                 break;
             }
             else if (teclas.find(tecla) != teclas.end()) {
@@ -58,7 +60,7 @@ void tarefaLeituraTeclado() {
                 else if (tecla == 'p') SetEvent(statusDisplayEvent);
             }
             else {
-                std::cout << "Tecla inválida.\n";
+                std::wcout << L"Tecla inválida.\n";
             }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -66,6 +68,9 @@ void tarefaLeituraTeclado() {
 }
 
 int main() {
+    SetConsoleOutputCP(CP_UTF8);
+    _setmode(_fileno(stdout), _O_U16TEXT);
+
     tarefaLeituraTeclado();
     return 0;
 }
