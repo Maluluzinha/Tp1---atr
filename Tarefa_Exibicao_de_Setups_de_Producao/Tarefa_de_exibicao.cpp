@@ -75,14 +75,25 @@
 
 #include "../Tp_parte_inicial/buffer_circular.h"
 
+//Define cores de texto
+#define WHITE  FOREGROUND_RED   | FOREGROUND_GREEN      | FOREGROUND_BLUE
+#define BLUE   FOREGROUND_BLUE| FOREGROUND_INTENSITY
+#define RED    FOREGROUND_RED   | FOREGROUND_INTENSITY
+
+HANDLE cout_handle = GetStdHandle(STD_OUTPUT_HANDLE);
+
 HANDLE hMutex;
 HANDLE setupDisplayEvent;
 HANDLE escEvent;
 std::atomic<bool> continuarProcesso{ true };
 
 void criarEventos() {
-    setupDisplayEvent = CreateEvent(NULL, TRUE, FALSE, L"setupDisplayEvent");
-    escEvent = CreateEvent(NULL, TRUE, FALSE, L"EscEvent");
+    /*setupDisplayEvent = OpenEvent(SYNCHRONIZE, FALSE, L"setupDisplayEvent");
+    escEvent = OpenEvent(EVENT_ALL_ACCESS, FALSE, L"EscEvent");*/
+    //setupDisplayEvent = CreateEvent(NULL, TRUE, FALSE, L"setupDisplayEvent");
+
+    setupDisplayEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, L"SetupDisplayEvent");
+    escEvent = OpenEvent(SYNCHRONIZE | EVENT_MODIFY_STATE, FALSE, L"EscEvent");
 
     if (!setupDisplayEvent || !escEvent) {
         std::cerr << "Erro ao criar eventos. Código: " << GetLastError() << std::endl;
@@ -114,6 +125,7 @@ void monitorarEvento() {
         }
 
         if (!bloqueado) {
+            SetConsoleTextAttribute(cout_handle, FOREGROUND_GREEN);
             std::cout << ("Processo de exibicao do setup executando...") << std::endl;
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
