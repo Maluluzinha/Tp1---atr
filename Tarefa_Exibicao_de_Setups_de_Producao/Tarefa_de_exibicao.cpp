@@ -92,7 +92,7 @@ void criarEventos() {
     escEvent = OpenEvent(EVENT_ALL_ACCESS, FALSE, L"EscEvent");*/
     //setupDisplayEvent = CreateEvent(NULL, TRUE, FALSE, L"setupDisplayEvent");
 
-    setupDisplayEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, L"SetupDisplayEvent");
+    setupDisplayEvent = OpenEvent(SYNCHRONIZE | EVENT_MODIFY_STATE, FALSE, L"SetupDisplayEvent");
     escEvent = OpenEvent(SYNCHRONIZE | EVENT_MODIFY_STATE, FALSE, L"EscEvent");
 
     if (!setupDisplayEvent || !escEvent) {
@@ -115,6 +115,7 @@ void monitorarEvento() {
 
         if (waitResult == WAIT_OBJECT_0) {
             bloqueado = !bloqueado;
+            SetConsoleTextAttribute(cout_handle, FOREGROUND_BLUE);
             std::cout << (bloqueado ? "Processo bloqueado" : "Processo desbloqueado") << std::endl;
             ResetEvent(setupDisplayEvent);
         }
