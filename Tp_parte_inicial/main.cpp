@@ -19,7 +19,6 @@
 typedef unsigned (WINAPI* CAST_FUNCTION)(LPVOID);
 typedef unsigned* CAST_LPDWORD;
 
-
 std::atomic<bool> execucao{ true };
 std::atomic<bool> bloqueioMES{ false };
 std::atomic<bool> bloqueioCLP{ false };
@@ -38,7 +37,6 @@ HANDLE retiradaMensagemStatus;
 HANDLE hMapFileLista1;
 HANDLE hMapFileLista2;
 
-
 BufferCircular<MensagemUnificada, MAX_MESSAGES>* bufferUnificado;
 
 const wchar_t* mutexName = L"Global\\MeuMutexCompartilhado";
@@ -51,7 +49,6 @@ HANDLE hMutexLista2;
 
 HANDLE hThreadMES;
 DWORD WINAPI MESFunc(LPVOID);	// declaração da função do MES
-
 
 //const wchar_t* SHARED_MEMORY_LISTA1 = L"Global\\SharedBufferLista1";
 //const wchar_t* SHARED_MEMORY_LISTA2 = L"Global\\SharedBufferLista2";
@@ -93,7 +90,6 @@ std::string gerarDadoMES(LPVOID id) {
     return msg.str();
 }
 
-
 /*------------------ FUNÇÃO GERA DADO DO CLP ------------------*/
 int Nseq_dados_clp;
 
@@ -131,7 +127,6 @@ std::string gerarDadoCLP(LPVOID id) {
 
     return msg.str();
 }
-
 
 void criarEventos() {
     mesReadEvent = CreateEvent(NULL, TRUE, FALSE, L"MesReadEvent");
@@ -534,6 +529,33 @@ void liberarRecursos() {
     if (retiradaMensagemStatus) CloseHandle(retiradaMensagemStatus);
 }
 
+#pragma region função das threads
+unsigned WINAPI ThreadMonitorarEventosEscritaCLP(LPVOID arg) {
+    monitorarEventosEscritaCLP();
+    return 0;
+}
+
+unsigned WINAPI ThreadMonitorarEventosLeituraCLP(LPVOID arg) {
+    monitorarEventosLeituraCLP();
+    return 0;
+}
+
+unsigned WINAPI ThreadMonitorarEventosEscritaMES(LPVOID arg) {
+    monitorarEventosEscritaMES();
+    return 0;
+}
+
+unsigned WINAPI ThreadMonitorarEventosLeituraMES(LPVOID arg) {
+    monitorarEventosLeituraMES();
+    return 0;
+}
+
+unsigned WINAPI ThreadMonitorarEventosRetiradaDeMensagens(LPVOID arg) {
+    monitorarEventosRetiradaDeMensagens();
+    return 0;
+}
+#pragma endregion
+
 int main() {
     try {
         bufferUnificado = new BufferCircular<MensagemUnificada, MAX_MESSAGES>();
@@ -543,21 +565,77 @@ int main() {
         criarSemaforos();
 
         iniciarProcesso(L"..\\x64\\Debug\\Tarefa_Leitura_Teclado.exe");
-        iniciarProcesso(L"..\\x64\\Debug\\Tarefa_Leitura_CLP.exe");
         iniciarProcesso(L"..\\x64\\Debug\\Tarefa_Exibicao_de_Setups_de_Producao.exe");
         iniciarProcesso(L"..\\x64\\Debug\\Tarefa_Exibicao_Dados_Processo.exe");
 
-        std::thread threadEscritaCLP(monitorarEventosEscritaCLP);
-        std::thread threadLeituraCLP(monitorarEventosLeituraCLP);
-        std::thread threadEscritaMES(monitorarEventosEscritaMES);
-        std::thread threadLeituraMES(monitorarEventosLeituraMES);
-        std::thread threadRetiradaDeMensagens(monitorarEventosRetiradaDeMensagens);
+        unsigned threadID;
+        HANDLE hThreadEscritaCLP = (HANDLE)_beginthreadex(
+            NULL,
+            0,
+            (CAST_FUNCTION)ThreadMonitorarEventosEscritaCLP,
+            NULL,
+            0,
+            (CAST_LPDWORD)&threadID
+        );
 
-        threadEscritaCLP.join();
-        threadLeituraCLP.join();
-        threadEscritaMES.join();
-        threadLeituraMES.join();
-        threadRetiradaDeMensagens.join();
+        HANDLE hThreadLeituraCLP = (HANDLE)_beginthreadex(
+            NULL,
+            0,
+            (CAST_FUNCTION)ThreadMonitorarEventosLeituraCLP,
+            NULL,
+            0,
+            (CAST_LPDWORD)&threadID
+        );
+
+        HANDLE hThreadEscritaMES = (HANDLE)_beginthreadex(
+            NULL,
+            0,
+            (CAST_FUNCTION)ThreadMonitorarEventosEscritaMES,
+            NULL,
+            0,
+            (CAST_LPDWORD)&threadID
+        );
+
+        HANDLE hThreadLeituraMES = (HANDLE)_beginthreadex(
+            NULL,
+            0,
+            (CAST_FUNCTION)ThreadMonitorarEventosLeituraMES,
+            NULL,
+            0,
+            (CAST_LPDWORD)&threadID
+        );
+
+        HANDLE hThreadRetirada = (HANDLE)_beginthreadex(
+            NULL,
+            0,
+            (CAST_FUNCTION)ThreadMonitorarEventosRetiradaDeMensagens,
+            NULL,
+            0,
+            (CAST_LPDWORD)&threadID
+        );
+
+        if (hThreadEscritaCLP == NULL || hThreadLeituraCLP == NULL ||
+            hThreadEscritaMES == NULL || hThreadLeituraMES == NULL ||
+            hThreadRetirada == NULL) {
+            throw std::runtime_error("Erro ao criar threads");
+        }
+
+        HANDLE threads[] = {
+            hThreadEscritaCLP,
+            hThreadLeituraCLP,
+            hThreadEscritaMES,
+            hThreadLeituraMES,
+            hThreadRetirada
+        };
+
+        WaitForMultipleObjects(5, threads, TRUE, INFINITE);
+
+        CloseHandle(hThreadEscritaCLP);
+        CloseHandle(hThreadLeituraCLP);
+        CloseHandle(hThreadEscritaMES);
+        CloseHandle(hThreadLeituraMES);
+        CloseHandle(hThreadRetirada);
+
 
         std::cout << "Sistema inicializado. Gerenciando tarefas..." << std::endl;
         gerenciarTarefas();
