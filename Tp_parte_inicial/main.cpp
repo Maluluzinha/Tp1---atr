@@ -235,28 +235,27 @@ void adicionarMensagemAoBuffer() {
     mensagem.linha = 1 + (rand() % 2);
 
     {
-        float valor = static_cast<float>(rand() % 1000) + static_cast<float>(rand() % 100) / 100.0f;
+        float valor = static_cast<float>(rand() % 1000000) + static_cast<float>(rand() % 10) / 10.0f;
         std::stringstream ss;
-        ss << std::fixed << std::setprecision(2) << std::setw(8) << std::setfill('0') << valor;
+        ss << std::fixed << std::setprecision(1) << valor;
         mensagem.valor1 = std::stof(ss.str());
     }
 
     {
-        float valor = static_cast<float>(rand() % 1000) + static_cast<float>(rand() % 100) / 100.0f;
+        float valor = static_cast<float>(rand() % 1000) + static_cast<float>(rand() % 10) / 10.0f;
         std::stringstream ss;
-        ss << std::fixed << std::setprecision(2) << std::setw(5) << std::setfill('0') << valor;
+        ss << std::fixed << std::setprecision(1) << valor;
         mensagem.valor2 = std::stof(ss.str());
     }
 
     {
-        float valor = static_cast<float>(rand() % 1000) + static_cast<float>(rand() % 100) / 100.0f;
+        float valor = static_cast<float>(rand() % 1000) + static_cast<float>(rand() % 10) / 10.0f;
         std::stringstream ss;
-        ss << std::fixed << std::setprecision(2) << std::setw(5) << std::setfill('0') << valor;
+        ss << std::fixed << std::setprecision(1) << valor;
         mensagem.valor3 = std::stof(ss.str());
     }
 
-    mensagem.valor4 = rand() % 10000;
-
+    mensagem.valor4 = rand() % 9999;
     GetLocalTime(&mensagem.timestamp);
 
     if (!bufferUnificado->estaCheia()) {
@@ -341,23 +340,23 @@ void adicionarMensagemAoBufferMES() {
     mensagem.linha = 1 + (rand() % 2);
 
     {
-        float valor = static_cast<float>(rand() % 1000) + static_cast<float>(rand() % 100) / 100.0f;
+        float valor = static_cast<float>(rand() % 100) + static_cast<float>(rand() % 100) / 100.0f;
         std::stringstream ss;
-        ss << std::fixed << std::setprecision(2) << std::setw(8) << std::setfill('0') << valor;
+        ss << std::fixed << std::setprecision(2) << valor;
         mensagem.valor1 = std::stof(ss.str());
     }
 
     {
         float valor = static_cast<float>(rand() % 1000) + static_cast<float>(rand() % 100) / 100.0f;
         std::stringstream ss;
-        ss << std::fixed << std::setprecision(2) << std::setw(5) << std::setfill('0') << valor;
+        ss << std::fixed << std::setprecision(1) << valor;
         mensagem.valor2 = std::stof(ss.str());
     }
 
     {
-        float valor = static_cast<float>(rand() % 1000) + static_cast<float>(rand() % 100) / 100.0f;
+        float valor = static_cast<float>(rand() % 100) + static_cast<float>(rand() % 100) / 100.0f;
         std::stringstream ss;
-        ss << std::fixed << std::setprecision(2) << std::setw(5) << std::setfill('0') << valor;
+        ss << std::fixed << std::setprecision(2) << valor;
         mensagem.valor3 = std::stof(ss.str());
     }
 
@@ -446,12 +445,10 @@ void retirarMensagemDoBuffer() {
                 << std::setfill('0')
                 << std::setw(5) << mensagem.nseq << "|"
                 << mensagem.linha << "|"
-                << std::setw(5) << std::setfill('0')
-                << mensagem.valor1 << "|"
-                << std::setw(6) << std::setfill('0')
-                << mensagem.valor2 << "|"
-                << std::setw(5) << std::setfill('0')
-                << mensagem.valor3 << "|"
+                << std::fixed << std::setprecision(2)
+                << std::setw(5) << mensagem.valor1 << "|"
+                << std::setw(5) << mensagem.valor2 << "|"
+                << std::setw(5) << mensagem.valor3 << "|"
                 << std::setfill('0')
                 << std::setw(2) << mensagem.timestamp.wHour << ":"
                 << std::setw(2) << mensagem.timestamp.wMinute << ":"
@@ -464,17 +461,16 @@ void retirarMensagemDoBuffer() {
                 << std::setfill('0')
                 << std::setw(5) << mensagem.nseq << "|"
                 << mensagem.linha << "|"
-                << std::setw(5) << std::setfill('0') << std::fixed << std::setprecision(1)
-                << mensagem.valor1 << "|"
-                << std::setw(5) << std::setfill('0') << std::fixed << std::setprecision(1) 
-                << mensagem.valor2 << "|"
-                << std::setw(5) << std::setfill('0') << std::fixed << std::setprecision(1)
-                << mensagem.valor3 << "|"
-                << std::setw(4) << std::setfill('0') << std::fixed << std::setprecision(0)
+                << std::fixed << std::setprecision(1)
+                << std::setw(8) << mensagem.valor1 << "|"
+                << std::setw(5) << mensagem.valor2 << "|"
+                << std::setw(5) << mensagem.valor3 << "|"
+                << std::setw(4) << std::setfill('0') << std::setprecision(0)
                 << mensagem.valor4 << "|"
-                << std::setw(2) << std::setfill('0') << mensagem.timestamp.wHour << ":"
-                << std::setw(2) << std::setfill('0') << mensagem.timestamp.wMinute << ":"
-                << std::setw(2) << std::setfill('0') << mensagem.timestamp.wSecond
+                << std::setfill('0')
+                << std::setw(2) << mensagem.timestamp.wHour << ":"
+                << std::setw(2) << mensagem.timestamp.wMinute << ":"
+                << std::setw(2) << mensagem.timestamp.wSecond
                 << RESET << std::endl;
         }
     }
